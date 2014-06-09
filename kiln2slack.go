@@ -6,6 +6,7 @@ import (
     "fmt"
     "log"
     "net/http"
+    "os"
     "strings"
 )
 
@@ -45,9 +46,7 @@ type KilnUpdate struct {
 }
 
 
-var SlackUrlForName map[string]string = map[string]string{
-    "projectname": "https://domainname.slack.com/services/hooks/incoming-webhook?token=token",
-}
+var SlackUrlForName map[string]string
 
 
 func SendToSlack(slackUrl string, r *http.Request) {
@@ -106,6 +105,17 @@ func SendToSlack(slackUrl string, r *http.Request) {
 
 
 func main() {
+
+    file, err := os.Open("./slackUrlForName.json")
+    if err != nil {
+        log.Fatalln("Error opening slack URL map file:", err)
+    }
+    dec := json.NewDecoder(file)
+    err = dec.Decode(&SlackUrlForName)
+    if err != nil {
+        log.Fatalln("Error reading slack URL map file:", err)
+    }
+    file.Close()
 
     http.HandleFunc("/kiln/", func (w http.ResponseWriter, r *http.Request) {
 
