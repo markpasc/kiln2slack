@@ -58,22 +58,24 @@ func SendToSlack(slackUrl string, payload string) {
         return
     }
 
-    message := SlackMessage{}
-    message.Text = fmt.Sprintf("%s pushed to <%s|%s>", update.Pusher.FullName, update.Repository.Url, update.Repository.Name)
-    message.Attachments = make([]SlackAttachment, len(update.Commits), len(update.Commits))
+    commitMessages := make([]string, len(update.Commits), len(update.Commits))
     for i := 0; i < len(update.Commits); i++ {
         // TODO: use mail.ParseAddress in 1.3 when it exists?
         parts := strings.SplitN(update.Commits[i].Author, " <", 2)
         name := parts[0]
 
-        message.Attachments[i].Color = "good"
-        message.Attachments[i].Text = fmt.Sprintf("<%s|%d> %s – %s",
+        commitMessages[i] = fmt.Sprintf("<%s|%d> %s – %s",
             update.Commits[i].Url,
             update.Commits[i].Revision,
             update.Commits[i].Message,
             name,
         )
     }
+
+    message := SlackMessage{}
+    message.Text = fmt.Sprintf("%s pushed to <%s|%s>", update.Pusher.FullName, update.Repository.Url, update.Repository.Name)
+    attach := SlackAttachment{Color: "good", Text: strings.Join(commitMessages, "\n")}
+    message.Attachments = []SlackAttachment{attach}
 
     jsonMessage, err := json.Marshal(message)
     if err != nil {
