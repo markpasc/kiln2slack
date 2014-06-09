@@ -49,21 +49,10 @@ type KilnUpdate struct {
 var SlackUrlForName map[string]string
 
 
-func SendToSlack(slackUrl string, r *http.Request) {
-
-    err := r.ParseForm()
-    if err != nil {
-        log.Println("Error parsing request's form data:", err)
-        return
-    }
-    payload := r.Form["payload"]
-    if len(payload) < 1 {
-        log.Println("Request form did not include a 'payload' form value???")
-        return
-    }
+func SendToSlack(slackUrl string, payload string) {
 
     var update KilnUpdate
-    err = json.Unmarshal([]byte(payload[0]), &update)
+    err := json.Unmarshal([]byte(payload), &update)
     if err != nil {
         log.Println("Error unmarshalling JSON from Kiln:", err)
         return
@@ -127,8 +116,21 @@ func main() {
             return
         }
 
+        err := r.ParseForm()
+        if err != nil {
+            log.Println("Error parsing request's form data:", err)
+            http.Error(w, "bad request :(", 400)
+            return
+        }
+        payloads := r.Form["payload"]
+        if len(payloads) < 1 {
+            log.Println("Request form did not include a 'payload' form value???")
+            http.Error(w, "bad request :(", 400)
+            return
+        }
+
         fmt.Fprintf(w, "OK")
-        go SendToSlack(slackUrl, r)
+        go SendToSlack(slackUrl, payloads[0])
     })
 
     log.Fatal(http.ListenAndServe(":10100", nil))
