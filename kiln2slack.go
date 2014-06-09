@@ -45,7 +45,12 @@ type KilnUpdate struct {
 }
 
 
-func SendToSlack(r *http.Request) {
+var SlackUrlForName map[string]string = map[string]string{
+    "projectname": "https://domainname.slack.com/services/hooks/incoming-webhook?token=token",
+}
+
+
+func SendToSlack(slackUrl string, r *http.Request) {
 
     err := r.ParseForm()
     if err != nil {
@@ -88,8 +93,7 @@ func SendToSlack(r *http.Request) {
         return
     }
     outputReader := bytes.NewReader(jsonMessage)
-    resp, err := http.Post("https://domainname.slack.com/services/hooks/incoming-webhook?token=token",
-        "application/json", outputReader)
+    resp, err := http.Post(slackUrl, "application/json", outputReader)
     if err != nil {
         log.Println("Error posting message to Slack:", err)
         return
@@ -103,9 +107,18 @@ func SendToSlack(r *http.Request) {
 
 func main() {
 
-    http.HandleFunc("/kiln/unityproject", func (w http.ResponseWriter, r *http.Request) {
+    http.HandleFunc("/kiln/", func (w http.ResponseWriter, r *http.Request) {
+
+        pathParts := strings.SplitN(r.URL.Path, "/", 3)
+        hookName := pathParts[2]
+        slackUrl, ok := SlackUrlForName[hookName]
+        if !ok {
+            http.NotFound(w, r)
+            return
+        }
+
         fmt.Fprintf(w, "OK")
-        go SendToSlack(r)
+        go SendToSlack(slackUrl, r)
     })
 
     log.Fatal(http.ListenAndServe(":10100", nil))
